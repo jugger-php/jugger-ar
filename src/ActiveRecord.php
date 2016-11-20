@@ -5,7 +5,6 @@ namespace jugger\ar;
 use Exception;
 use ArrayAccess;
 use jugger\db\Query;
-use jugger\db\QueryBuilder;
 use jugger\ar\field\BaseField;
 use jugger\base\ArrayAccessTrait;
 
