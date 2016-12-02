@@ -8,8 +8,7 @@
     },
     "require": {
         "php": "^7.0.9",
-        "jugger-php/jugger-base": "1.*",
-        "jugger-php/jugger-di": "1.*",
-        "jugger-php/jugger-db": "1.*"
+        "jugger-php/jugger-base": "~1.0",
+        "jugger-php/jugger-db": "~1.0"
     }
 }
