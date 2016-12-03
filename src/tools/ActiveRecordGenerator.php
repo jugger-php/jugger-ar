@@ -3,14 +3,22 @@
 namespace jugger\ar\tools;
 
 use jugger\db\Query;
+use jugger\db\ConnectionPool;
 use jugger\ar\ActiveRecord;
 
 class ActiveRecordGenerator
 {
 	public static function buildClass($tableName, $namespace = '') {
 		// получение информации о таблицы
-		$sql = "show columns from `{$tableName}`";
-		$result = \Bitrix\Main\Application::getConnection()->query($sql)->fetchAll();
+		// $sql = "show columns from `{$tableName}`";
+		$sql = "SELECT sql FROM sqlite_master WHERE tbl_name = '{$tableName}' AND type = 'table'";
+		$result = ConnectionPool::get('default')->query($sql)->fetch();
+		$sql = $result['sql'];
+		$re = '/^[^\(]+\((.+)\)/s';
+		preg_match($re, $sql, $result);
+		$result = preg_split('~\,~', $result[1]);
+
+		var_dump($result); die();
 
 		// переменные
 		$useList = [
@@ -64,7 +72,7 @@ class <?= $className ?> extends ActiveRecord
     }
 }
 		<?php
-		echo htmlspecialchars(ob_get_clean());
+		return ob_get_clean();
 	}
 
     public static function buildParams($column, & $typeClass, & $useList) {
