@@ -10,7 +10,7 @@ class IntegerField extends BaseField
             return (int) $this->value;
         }
         else {
-            throw new ValueException($this);
+            return null;
         }
     }
 }
