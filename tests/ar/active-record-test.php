@@ -32,6 +32,12 @@ class ActiveRecordTest extends TestCase
         }
     }
 
+    public static function tearDownAfterClass()
+    {
+        ConnectionPool::get('default')->execute("DROP TABLE `author`");
+        ConnectionPool::get('default')->execute("DROP TABLE `post`");
+    }
+
     public function testBase()
     {
         $title = 'title test';
@@ -95,5 +101,45 @@ class ActiveRecordTest extends TestCase
         $this->assertTrue(count($post->authors) === 1);
         $this->assertEquals($author->id, $post->authors[0]->id);
         $this->assertEquals($author->post->id, $post->id);
+    }
+
+    /*
+     * @depends testRelations
+     */
+    public function testRelationQuery()
+    {
+        $author = Author::find()
+            ->by('post', [
+                'post.title' => 'new post',
+            ])
+            ->one();
+
+        $this->assertNotNull($author);
+        $this->assertEquals($author->name, 'Ivan Ivanov');
+
+        $posts = Post::find()
+            ->by('authors', [
+                'author.id' => $author->id,
+            ])
+            ->all();
+
+        $this->assertNotEmpty($posts);
+        $this->assertEquals($posts[0]->authors[0]->id, $author->id);
+    }
+
+    /*
+     * @depends testRelationQuery
+     */
+    public function testUpdate()
+    {
+
+    }
+
+    /*
+     * @depends testUpdate
+     */
+    public function testDelete()
+    {
+
     }
 }
