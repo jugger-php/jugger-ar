@@ -203,6 +203,14 @@ abstract class ActiveRecord implements ArrayAccess
 		)->execute();
 	}
 
+	public static function deleteAll($where)
+	{
+		return QueryBuilder::delete(
+			static::getTableName(),
+			$where
+		)->execute();
+	}
+
 	public static function find()
     {
         $class = get_called_class();
