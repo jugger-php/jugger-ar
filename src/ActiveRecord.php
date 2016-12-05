@@ -222,9 +222,12 @@ abstract class ActiveRecord implements ArrayAccess
 		return (new ActiveQuery($class))->select($fields)->from([$table]);
 	}
 
-	public static function findOne($where)
+	public static function findOne($where = null)
     {
-		if (is_scalar($where)) {
+		if (empty($where)) {
+			return static::find()->one();
+		}
+		elseif (is_scalar($where)) {
 			$where = [
 				static::getPrimaryKey() => $where
 			];
@@ -232,8 +235,11 @@ abstract class ActiveRecord implements ArrayAccess
 		return static::find()->where($where)->one();
 	}
 
-	public static function findAll(array $where)
+	public static function findAll(array $where = [])
     {
+		if (empty($where)) {
+			return static::find()->all();
+		}
 		return static::find()->where($where)->all();
 	}
 }
