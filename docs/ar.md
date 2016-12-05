@@ -7,7 +7,7 @@ AR содержит в себе рутинные CRUD (Create Read Update Delete
 ## Создание и генерация класса
 
 Допустим имеется таблица:
-```
+```php
 CREATE TABLE `user` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `username` VARCHAR(100) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE `user` (
 ```
 
 Класс AR будет выглядеть следующим образом:
-```
+```php
 use jugger\ar\ActiveRecord;
 use jugger\ar\field\IntegerField;
 use jugger\ar\field\TextField;
@@ -54,7 +54,8 @@ class User extends ActiveRecord
 
 Для автоматизации и упрощения процесса создания классов, существует специальный класс генератор.
 Для класса выше, генерация будет выглядить так:
-```
+
+```php
 use jugger\ar\ActiveRecordGenerator;
 
 // генерация без пространства имен (но заполнить придется вручную)
@@ -68,7 +69,7 @@ ActiveRecordGenerator::buildClass('user', 'site\user');
 ## Создание и поиск записей
 
 Для создания новой записи достаточно просто создать новый экземпляр класса:
-```
+```php
 $user = new User();
 $user->username = 'irpsv';
 $user->password = '123456';
@@ -77,7 +78,7 @@ $user->save();
 После вызова метода `save` будет выполнен непосредственно запрос к БД.
 
 Для поиска и выборки записей используются методы `find`:
-```
+```php
 // SELECT * FROM `user` WHERE `username` = 'irpsv' LIMIT 1
 User::findOne([
     'username' => 'irpsv'
@@ -98,7 +99,7 @@ User::find();
 ## Удаление записей
 
 Удалить запись можно двумя способами:
-```
+```php
 // удаление одной записи
 User::findOne(['id' => 1])->delete();
 // удаление всех записей удовлетворяющих условию
@@ -111,7 +112,7 @@ Active Query (AQ) - это надстройка (дочерний класс) н
 AQ является дополненым построителем запросов, который возвращает объекты сущности, а не массивы и позволяет использовать каскадные запросы к связным таблицам (об этом далее).
 
 Пример работы с AQ:
-```
+```php
 // получаем объект ActiveQuery
 $query = User::find();
 $query->build(); // === SELECT * FROM `user`
@@ -134,7 +135,7 @@ $query->where([
 
 Для сущностей, также можно указать их связи с другими сущностями.
 Для примера добавим таблицу `attribute`, которая будет иметь вид:
-```
+```php
 CREATE TABLE `attribute` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `id_user` INT NOT NULL,
@@ -144,7 +145,7 @@ CREATE TABLE `attribute` (
 ```
 
 Класс AR будет выглядеть следующим образом:
-```
+```php
 use jugger\ar\ActiveRecord;
 use jugger\ar\field\IntegerField;
 use jugger\ar\field\TextField;
@@ -191,7 +192,7 @@ class Attribute extends ActiveRecord
 ```
 
 Для класса `User` также можно добавить информацию о связи:
-```
+```php
 class User extends ActiveRecord
 {
     // ...
@@ -210,7 +211,7 @@ class User extends ActiveRecord
 ```
 
 Информация о связи формируется следующим образом:
-```
+```php
 'имя свойства' => [
     'class' => 'псевдоним\класса',
     'relation' => ['столбец в текущей таблице' => 'столбец в связной таблице'],
@@ -219,7 +220,7 @@ class User extends ActiveRecord
 ```
 
 Когда указана связь, можно обратиться к экземпляру связной таблицы, как к обычному свойству:
-```
+```php
 $attribute = Attribute::findOne(['id_user' => 1]);
 
 // получаем объект пользователя
@@ -234,7 +235,7 @@ $user->attributes; // === Attribute::findAll(['id_user' => 1]);
 ```
 
 Также, можно писать каскадные запросы при поиске записей:
-```
+```php
 Attribute::find()
     ->by('user', [
         `%username` => '%abc%'
