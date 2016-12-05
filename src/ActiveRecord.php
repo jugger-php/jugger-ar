@@ -185,6 +185,15 @@ abstract class ActiveRecord implements ArrayAccess
         )->execute();
 	}
 
+	public static function updateAll(array $values, $where)
+	{
+		return QueryBuilder::update(
+			static::getTableName(),
+			$values,
+			$where
+		)->execute();
+	}
+
 	public function delete()
 	{
 		$pk = static::getPrimaryKey();
