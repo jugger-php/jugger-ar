@@ -1,0 +1,7 @@
+<phpunit bootstrap="tests/bootstrap.php">
+    <testsuites>
+        <testsuite name="active-record">
+            <directory suffix='.php'>tests/ar</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
