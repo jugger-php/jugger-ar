@@ -74,7 +74,7 @@ class ActiveQuery extends Query
 		$selfTable = ((array) $this->from)[0];
 
 		$targetColumn = current($relation['relation']);
-		$targetTable = $relationClass::tableName();
+		$targetTable = $relationClass::getTableName();
 		$on = "{$selfTable}.{$selfColumn} = {$targetTable}.{$targetColumn}";
 
 		$this->innerJoin($targetTable, $on);
