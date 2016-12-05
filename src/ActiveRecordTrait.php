@@ -26,23 +26,23 @@ trait ActiveRecordTrait
     protected function getRelation($name)
     {
         if (is_array($this->relations[$name])) {
-            $class = $this->relations[$name]['class'];
-            $self = key($this->relations[$name]['relation']);
-            $target = current($this->relations[$name]['relation']);
-            $many = $this->relations[$name]['many'] ?? false;
+            $data = $this->relations[$name];
+            $class = $data['class'];
+            $self = key($data['relation']);
+            $target = current($data['relation']);
+            $many = $data['many'] ?? false;
 
             if ($many) {
-                $this->relations[$name] = $class::findAll([
+                return $class::findAll([
                     $target => $this->$self
                 ]);
             }
             else {
-                $this->relations[$name] = $class::findOne([
+                return $class::findOne([
                     $target => $this->$self
                 ]);
             }
         }
-        return $this->relations[$name];
     }
 
 	public function __set($name, $value)
