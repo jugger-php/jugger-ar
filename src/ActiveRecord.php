@@ -235,7 +235,7 @@ abstract class ActiveRecord implements ArrayAccess
 		return static::find()->where($where)->one();
 	}
 
-	public static function findAll(array $where = [])
+	public static function findAll($where = null)
     {
 		if (empty($where)) {
 			return static::find()->all();
