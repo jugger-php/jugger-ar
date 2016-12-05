@@ -57,6 +57,9 @@ class ActiveRecordTest extends TestCase
         $this->assertEquals($row->title, $title);
         $this->assertEquals($row->content, $content);
 
+        $firstRow = Post::findOne();
+        $this->assertEquals($firstRow->id, $row->id);
+
         $row->delete();
 
         $this->assertNull(Post::findOne($id));
@@ -132,7 +135,17 @@ class ActiveRecordTest extends TestCase
      */
     public function testUpdate()
     {
+        $newTitle = "2873ryfbh3k5yg";
 
+        Post::updateAll([
+            'title' => $newTitle,
+        ], '1=1');
+
+        $posts = Post::findAll();
+        $this->assertNotEmpty($posts);
+        foreach ($posts as $post) {
+            $this->assertEquals($post->title, $newTitle);
+        }
     }
 
     /*
@@ -140,6 +153,10 @@ class ActiveRecordTest extends TestCase
      */
     public function testDelete()
     {
+        Post::deleteAll('1=1');
+        Author::deleteAll('1=1');
 
+        $this->assertEmpty(Post::findAll());
+        $this->assertEmpty(Author::findAll());
     }
 }
