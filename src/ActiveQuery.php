@@ -4,9 +4,7 @@ namespace jugger\ar;
 
 use Exception;
 use ReflectionClass;
-use jugger\di\Container;
-
-Container::getInstance()->createClass('jugger\ar\Query', 'jugger\ar\QueryInterface');
+use jugger\db\Query;
 
 class ActiveQuery extends Query
 {
@@ -20,35 +18,40 @@ class ActiveQuery extends Query
 		}
 
 		$this->className = $className;
-		$this->from($className::tableName());
+		$this->from($className::getTableName());
 	}
 
 	protected function createRecord(array $attributes) {
-		$record = new $this->className();
+		$class = $this->className;
+		$record = new $class();
 		$record->isNewRecord = false;
 		$record->setFields($attributes);
 		return $record;
 	}
 
-	public function one(bool $asArray = false) {
+	public function one(bool $asArray = false)
+	{
 		$row = parent::one();
-		if ($asArray || is_null($row)) {
+		if ($asArray) {
 			return $row;
+		}
+		elseif (!$row) {
+			return null;
 		}
 		return $this->createRecord($row);
 	}
 
-	public function all(bool $asArray = false) {
+	public function all(bool $asArray = false): array
+	{
 		if ($asArray) {
 			return parent::all();
 		}
 
 		$rows = [];
 		$result = $this->query();
-		$pk = $this->className::primaryKey();
-		while ($row = $result->fetchRaw()) {
-            $key = $row[$pk];
-			$rows[$key] = $this->createRecord($row);
+		$pk = $this->className::getPrimaryKey();
+		while ($row = $result->fetch()) {
+			$rows[] = $this->createRecord($row);
 		}
 		return $rows;
 	}
