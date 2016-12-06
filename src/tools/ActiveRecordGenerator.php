@@ -8,7 +8,7 @@ use jugger\ar\ActiveRecord;
 
 class ActiveRecordGenerator
 {
-	public static function buildClass($tableName, $namespace = '') {
+	public static function buildClass($tableName, $sqlBuilderClassName) {
 		// получение информации о таблицы
 		// $sql = "show columns from `{$tableName}`";
 		$sql = "SELECT sql FROM sqlite_master WHERE tbl_name = '{$tableName}' AND type = 'table'";
@@ -17,6 +17,9 @@ class ActiveRecordGenerator
 		$re = '/^[^\(]+\((.+)\)/s';
 		preg_match($re, $sql, $result);
 		$result = preg_split('~\,~', $result[1]);
+
+		$sql = "show columns from `{$tableName}`";
+		$result = \Bitrix\Main\Application::getConnection()->query($sql)->fetchAll();
 
 		var_dump($result); die();
 
@@ -49,7 +52,7 @@ class ActiveRecordGenerator
 		ob_start();
 		echo "<?php\n";
 		?>
-namespace <?= $namespace ?>;
+namespace ;
 
 <?php
 $useList = array_unique($useList);
