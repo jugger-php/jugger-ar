@@ -2,14 +2,12 @@
 
 namespace jugger\ar;
 
-use Exception;
-use ArrayAccess;
 use jugger\db\QueryBuilder;
 use jugger\db\ConnectionPool;
 use jugger\ar\field\BaseField;
 use jugger\base\ArrayAccessTrait;
 
-abstract class ActiveRecord implements ArrayAccess
+abstract class ActiveRecord implements \ArrayAccess
 {
 	use ActiveRecordTrait;
 	use ArrayAccessTrait;
@@ -78,7 +76,7 @@ abstract class ActiveRecord implements ArrayAccess
 
         $this->fields = [];
         foreach ($fields as $field) {
-            $this->fields[$field->column] = $field;
+            $this->fields[$field->getColumn()] = $field;
         }
     }
 
@@ -105,13 +103,13 @@ abstract class ActiveRecord implements ArrayAccess
             $fields = static::getFields();
             foreach ($fields as $column => $field) {
                 if ($field->primary) {
-                    self::$primaryKey = strtolower($field->column);
+                    self::$primaryKey = strtolower($field->getColumn());
                     break;
                 }
             }
 
             if (is_null(self::$primaryKey)) {
-                throw new Exception("Not set primary key");
+                throw new \Exception("Not set primary key");
             }
         }
         return self::$primaryKey;
@@ -216,7 +214,7 @@ abstract class ActiveRecord implements ArrayAccess
         $class = get_called_class();
         $table = $class::getTableName();
         $fields = array_map(function(BaseField $row) use($table) {
-            return "{$table}.{$row->column}";
+            return "{$table}.{$row->getColumn()}";
         }, $class::getFields());
 
 		return (new ActiveQuery($class))->select($fields)->from([$table]);
