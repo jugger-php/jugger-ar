@@ -4,10 +4,10 @@ namespace jugger\ar\field;
 
 class IntegerField extends BaseField
 {
-	protected function prepareValue()
+	protected function prepareValue($value)
     {
-        if (is_numeric($this->value)) {
-            return (int) $this->value;
+        if (is_numeric($value)) {
+            return (int) $value;
         }
         else {
             return null;
