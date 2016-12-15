@@ -6,37 +6,49 @@ use jugger\base\Configurator;
 
 abstract class BaseField
 {
-    public $column;
-	public $value;
 	public $default;
     public $primary = false;
     public $unique = false;
     public $autoIncrement = false;
 
-    protected $isSetDefault = false;
+    protected $column;
+	protected $value;
 
-	public function __construct(array $config = [])
+    abstract protected function prepareValue($value);
+
+	public function __construct(array $config)
     {
+		if (isset($config['column'])) {
+			$this->column = $config['column'];
+			unset($config['column']);
+		}
+		else {
+			throw new \Exception("Property 'column' is require");
+		}
+
+		if (isset($config['value'])) {
+			$this->setValue($config['value']);
+			unset($config['value']);
+		}
+
         Configurator::setValues($this, $config);
-        $this->isSetDefault = array_key_exists('default', $config);
 	}
 
-    protected function prepareValue()
-    {
-        return $this->value;
-    }
+	public function getColumn()
+	{
+		return $this->column;
+	}
 
 	public function getValue()
     {
-        $value = $this->prepareValue();
-        if (!$value) {
+        if (is_null($this->value)) {
             return $this->default;
         }
-		return $value;
+		return $this->value;
 	}
 
 	public function setValue($value)
     {
-		$this->value = $value;
+		$this->value = $this->prepareValue($value);
 	}
 }
