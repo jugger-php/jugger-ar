@@ -14,14 +14,14 @@ abstract class ActiveRecord implements \ArrayAccess
 
     public $isNewRecord = false;
 
-    private $fields;
-    private $relations;
-    private static $primaryKey;
+    protected $fields;
+	protected $relations;
+    protected static $primaryKey;
 
 	public function __construct(array $values = [])
     {
 		$this->isNewRecord = true;
-        $this->relations = static::getRelations();
+		$this->relations = static::getRelations();
         $this->initFields(static::getFields());
 		$this->setFields($values);
 	}
@@ -54,7 +54,8 @@ abstract class ActiveRecord implements \ArrayAccess
 
     abstract public static function getFields();
 
-    public static function getRelations() {
+    public static function getRelations()
+	{
         return [];
     }
 
@@ -68,7 +69,7 @@ abstract class ActiveRecord implements \ArrayAccess
 		}
 	}
 
-    private function initFields(array $fields)
+    protected function initFields(array $fields)
     {
         if (!empty($this->fields)) {
             return;
