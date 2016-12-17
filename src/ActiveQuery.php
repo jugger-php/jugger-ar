@@ -5,6 +5,9 @@ namespace jugger\ar;
 use Exception;
 use ReflectionClass;
 use jugger\db\Query;
+use jugger\ar\relations\RelationInterface;
+use jugger\ar\mapping\ForeignKey;
+use jugger\ar\mapping\AssociationKey;
 
 class ActiveQuery extends Query
 {
@@ -21,7 +24,8 @@ class ActiveQuery extends Query
 		$this->from($className::getTableName());
 	}
 
-	protected function createRecord(array $attributes) {
+	protected function createRecord(array $attributes)
+	{
 		$class = $this->className;
 		$record = new $class();
 		$record->isNewRecord = false;
@@ -69,19 +73,33 @@ class ActiveQuery extends Query
             throw new Exception("Relation '{$relationName}' not found in '{$this->className}' class");
         }
 
-		$relationClass = $relation['class'];
-		$selfColumn = key($relation['relation']);
-		$selfTable = ((array) $this->from)[0];
+		if ($relation instanceof RelationInterface) {
+			$this->joinForeignKey($relation);
+		}
+		elseif ($relation instanceof AssociationKey) {
+			$keys = $relation->getKeys();
+			foreach ($keys as $key) {
+				$this->joinForeignKey($key);
+			}
+		}
 
-		$targetColumn = current($relation['relation']);
-		$targetTable = $relationClass::getTableName();
-		$on = "{$selfTable}.{$selfColumn} = {$targetTable}.{$targetColumn}";
-
-		$this->innerJoin($targetTable, $on);
 		if (!empty($where)) {
 			$this->andWhere($where);
 		}
 
 		return $this;
     }
+
+	public function joinForeignKey(ForeignKey $key)
+	{
+		$selfTable = $this->from;
+		if (is_array($selfTable)) {
+			$selfTable = $selfTable[0];
+		}
+		$on  = "{$selfTable}.{$key->getSelfField()} = ";
+		$on .= "{$key->getTargetTable()}.{$key->getTargetField()}";
+		$this->innerJoin($key->getTargetTable(), $on);
+
+		return $this;
+	}
 }
