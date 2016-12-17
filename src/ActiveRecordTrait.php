@@ -15,35 +15,17 @@ trait ActiveRecordTrait
 			return $this->fields[$name]->getValue();
 		}
         elseif (array_key_exists($name, $this->relations)) {
-            return $this->getRelation($name);
+            $relation = $this->relations[$name];
+            $selfField = $relation->getSelfField();
+            $selfValue = $this->$selfField;
+
+            return $relation->getValue($selfValue);
 		}
 		else {
 			$class = get_called_class();
 			throw new \ErrorException("Field or relation '{$name}' not found in '{$class}'");
 		}
 	}
-
-    protected function getRelation($name)
-    {
-        if (is_array($this->relations[$name])) {
-            $data = $this->relations[$name];
-            $class = $data['class'];
-            $self = key($data['relation']);
-            $target = current($data['relation']);
-            $many = $data['many'] ?? false;
-
-            if ($many) {
-                return $class::findAll([
-                    $target => $this->$self
-                ]);
-            }
-            else {
-                return $class::findOne([
-                    $target => $this->$self
-                ]);
-            }
-        }
-    }
 
 	public function __set($name, $value)
     {
