@@ -5,6 +5,7 @@ namespace tests;
 use jugger\ar\ActiveRecord;
 use jugger\ar\field\TextField;
 use jugger\ar\field\IntegerField;
+use jugger\ar\relations\ManyRelation;
 
 class Post extends ActiveRecord
 {
@@ -35,11 +36,7 @@ class Post extends ActiveRecord
     public static function getRelations()
     {
         return [
-            'authors' => [
-                'class' => 'tests\Author',
-                'relation' => ['id' => 'id_post'],
-                'many' => true,
-            ],
+            'authors' => new ManyRelation('id', 'id_post', 'tests\Author'),
         ];
     }
 }
