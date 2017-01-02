@@ -3,6 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use tests\Post;
 use tests\Author;
+use jugger\db\Query;
 use jugger\db\ConnectionPool;
 use jugger\ar\tools\ActiveRecordGenerator;
 
@@ -10,32 +11,28 @@ class ActiveRecordTest extends TestCase
 {
     public static function setUpBeforeClass()
     {
-        $sqls = [];
-        $sqls[] = "
+        Di::$pool['default']->execute("DROP TABLE IF EXISTS `author`");
+        Di::$pool['default']->execute("DROP TABLE IF EXISTS `post`");
+
+        Di::$pool['default']->execute("
         CREATE TABLE `post` (
-            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            `id` INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL,
             `title` VARCHAR(100) NOT NULL,
-            `content` TEXT
-        )
-        ";
+            `content` TEXT);
+        ");
 
-        $sqls[] = "
+        Di::$pool['default']->execute("
         CREATE TABLE `author` (
-            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            `id` INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL,
             `id_post` INTEGER NOT NULL,
-            `name` TEXT
-        )
-        ";
-
-        foreach ($sqls as $sql) {
-            ConnectionPool::get('default')->execute($sql);
-        }
+            `name` TEXT);
+        ");
     }
 
     public static function tearDownAfterClass()
     {
-        ConnectionPool::get('default')->execute("DROP TABLE `author`");
-        ConnectionPool::get('default')->execute("DROP TABLE `post`");
+        Di::$pool['default']->execute("DROP TABLE IF EXISTS `author`");
+        Di::$pool['default']->execute("DROP TABLE IF EXISTS `post`");
     }
 
     public function testBase()
@@ -45,7 +42,8 @@ class ActiveRecordTest extends TestCase
 
         $post = new Post();
         $post->title = $title;
-        $id = $post->save();
+        $post->save();
+        $id = $post->id;
 
         $this->assertTrue($id > 0);
 
@@ -61,7 +59,6 @@ class ActiveRecordTest extends TestCase
         $this->assertEquals($firstRow->id, $row->id);
 
         $row->delete();
-
         $this->assertNull(Post::findOne($id));
     }
 
@@ -69,10 +66,7 @@ class ActiveRecordTest extends TestCase
     {
         $query = Post::find();
 
-        $this->assertInstanceOf(
-            \jugger\db\Query::class,
-            $query
-        );
+        $this->assertInstanceOf(Query::class, $query);
         $this->assertEquals(
             $query->build(),
             "SELECT `post`.`id`, `post`.`title`, `post`.`content` FROM `post`"
@@ -96,10 +90,11 @@ class ActiveRecordTest extends TestCase
         ]);
         $author->save();
 
-        (new Author([
+        $anotherAuthor = new Author([
             'id_post' => 123,
             'name' => 'Another author',
-        ]))->save();
+        ]);
+        $anotherAuthor->save();
 
         $this->assertTrue(count($post->authors) === 1);
         $this->assertEquals($author->id, $post->authors[0]->id);
@@ -111,6 +106,15 @@ class ActiveRecordTest extends TestCase
      */
     public function testRelationQuery()
     {
+        $this->assertEquals(
+            Author::find()
+                ->by('post', [
+                    'post.title' => 'new post',
+                ])
+                ->build(),
+            "SELECT `author`.`id`, `author`.`id_post`, `author`.`name` FROM `author` INNER JOIN `post` ON `author`.`id_post` = `post`.`id`  WHERE (`post`.`title` = 'new post')"
+        );
+
         $author = Author::find()
             ->by('post', [
                 'post.title' => 'new post',
