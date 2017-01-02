@@ -2,7 +2,7 @@
 
 namespace jugger\ar;
 
-use jugger\db\QueryBuilder;
+use jugger\db\Command;
 use jugger\db\ConnectionPool;
 use jugger\ar\field\BaseField;
 use jugger\base\ArrayAccessTrait;
@@ -12,54 +12,58 @@ abstract class ActiveRecord implements \ArrayAccess
 	use ActiveRecordTrait;
 	use ArrayAccessTrait;
 
-    public $isNewRecord = false;
-
-    protected $fields;
-	protected $relations;
-    protected static $primaryKey;
+	protected $_fields;
+	protected static $_db;
+	protected static $_primaryKey;
 
 	public function __construct(array $values = [])
     {
-		$this->isNewRecord = true;
-		$this->relations = static::getRelations();
-        $this->initFields(static::getFields());
-		$this->setFields($values);
+		$this->setValues($values);
 	}
 
-	/**
-	 * not working
-	 */
-	public static function getSqlCreateTable()
+	public function isNewRecord()
 	{
-		$fileds = static::getFields();
-		$tableName = static::getTableName();
+		$primaryKey = static::getPrimaryKey()->getColumn();
+		return is_null($this->$primaryKey);
+	}
 
-		$sql = "CREATE TABLE `{$tableName}` (\n";
-		$count = count($fields);
-		foreach ($fields as $field) {
-			$params = [];
+	public static function setDb(ConnectionInterface $db)
+	{
+		static::$_db = $db;
+	}
 
-			$params = implode(' ', $params);
+	public static function getDb()
+	{
+		return static::$_db;
+	}
 
-			$sql .= "`{$field->column}` {$params}";
+    abstract public static function getSchema();
 
-			$count--;
-			if ($count != 0) {
-				$sql .= ",";
+	public function getFields()
+	{
+		if (!$this->_fields) {
+			$this->_fields = [];
+			$schema = static::getSchema();
+			foreach ($schema as $value) {
+				$key = $value->getColumn();
+				$this->_fields[$key] = $value;
 			}
-			$sql .= "\n";
 		}
-		return $sql .")";
+		return $this->_fields;
 	}
 
-    abstract public static function getFields();
-
-    public static function getRelations()
+	public function getField($name)
 	{
-        return [];
-    }
+		$fields = $this->getFields();
+		return $fields[$name] ?? null;
+	}
 
-    public function setFields(array $values)
+    public function getColumns()
+    {
+		return array_keys($this->getFields());
+	}
+
+	public function setValues(array $values)
     {
 		foreach ($values as $name => $value) {
             $name = strtolower($name);
@@ -69,51 +73,37 @@ abstract class ActiveRecord implements \ArrayAccess
 		}
 	}
 
-    protected function initFields(array $fields)
-    {
-        if (!empty($this->fields)) {
-            return;
-        }
-
-        $this->fields = [];
-        foreach ($fields as $field) {
-            $this->fields[$field->getColumn()] = $field;
-        }
-    }
-
-    public function getColumns()
-    {
-		return array_keys($this->fields);
-	}
-
     public function getValues()
     {
         $values = [];
-        foreach ($this->fields as $column => $value) {
-            $column = strtolower($column);
-            $values[$column] = $value->getValue();
+        foreach ($this->getFields() as $column => $field) {
+            $values[$column] = $field->getValue();
         }
         return $values;
+    }
+
+	public static function getRelations()
+	{
+        return [];
     }
 
 	public static abstract function getTableName();
 
 	public static function getPrimaryKey()
     {
-		if (!self::$primaryKey) {
-            $fields = static::getFields();
+		if (!static::$_primaryKey) {
+            $fields = static::getSchema();
             foreach ($fields as $column => $field) {
                 if ($field->primary) {
-                    self::$primaryKey = strtolower($field->getColumn());
+                    static::$_primaryKey = $field;
                     break;
                 }
             }
-
-            if (is_null(self::$primaryKey)) {
+            if (is_null(static::$_primaryKey)) {
                 throw new \Exception("Not set primary key");
             }
         }
-        return self::$primaryKey;
+        return static::$_primaryKey;
 	}
 
     public function beforeSave()
@@ -127,7 +117,7 @@ abstract class ActiveRecord implements \ArrayAccess
 			return false;
 		}
 
-		if ($this->isNewRecord) {
+		if ($this->isNewRecord()) {
 			$ret = $this->insert();
 		}
 		else {
@@ -145,80 +135,68 @@ abstract class ActiveRecord implements \ArrayAccess
 
 	public function insert()
     {
-		$values = [];
-		// исключаем PK если он не указан
-		foreach ($this->fields as $name => $column) {
-			$value = $column->getValue();
-			if (is_null($value) && $column->autoIncrement) {
-				continue;
-			}
-			$values[$name] = $value;
-		}
+		$db = static::getDb();
+		$values = $this->getValues();
+		$tableName = static::getTableName();
+		$primaryKey = static::getPrimaryKey()->getColumn();
 
-		$db = ConnectionPool::get('default');
-		$db->beginTransaction();
+		// $db->execute("LOCK TABLES `{$tableName}`");
+		$ret = (new Command($db))->insert($tableName, $values)->execute();
+		$this->$primaryKey = $db->getLastInsertId();
+		// $db->execute("UNLOCK TABLES");
 
-        QueryBuilder::insert(
-			static::getTableName(),
-			$values
-		)->execute();
-
-		$pk = static::getPrimaryKey();
-		$this->$pk = $db->getLastInsertId(static::getTableName());
-
-		$db->commit();
-		$this->isNewRecord = false;
-
-		return $this->$pk;
+		return $ret;
 	}
 
 	public function update()
     {
-        $pk = static::getPrimaryKey();
-        return (bool) QueryBuilder::update(
-            static::getTableName(),
-            $this->getValues(),
-            [
-                $pk => $this->$pk,
-            ]
-        )->execute();
+		$values = $this->getValues();
+		$primaryKey = static::getPrimaryKey()->getColumn();
+
+		return static::updateAll($values, [
+			$primaryKey => $this->$primaryKey
+		]);
 	}
 
 	public static function updateAll(array $values, $where)
 	{
-		return QueryBuilder::update(
-			static::getTableName(),
-			$values,
-			$where
-		)->execute();
+		$db = static::getDb();
+		$tableName = static::getTableName();
+		return (new Command($db))->update($tableName, $values, $where)->execute();
 	}
 
 	public function delete()
 	{
-		$pk = static::getPrimaryKey();
-		return QueryBuilder::delete(
-			static::getTableName(),
-            [$pk => $this->$pk]
-		)->execute();
+		if ($this->isNewRecord()) {
+			return false;
+		}
+
+		$primaryKey = static::getPrimaryKey()->getColumn();
+		return static::deleteAll([
+			$primaryKey => $this->$primaryKey
+		]);
 	}
 
 	public static function deleteAll($where)
 	{
-		return QueryBuilder::delete(
-			static::getTableName(),
-			$where
-		)->execute();
+		$db = static::getDb();
+		$tableName = static::getTableName();
+		return (new Command($db))->delete($tableName, $where)->execute();
 	}
 
-	public static function find()
+	public static function find(ConnectionInterface $db = null)
     {
-        $class = get_called_class();
-        $table = $class::getTableName();
-        $fields = array_map(function(BaseField $row) use($table) {
-            return "{$table}.{$row->getColumn()}";
-        }, $class::getFields());
+		$db = $db ?? static::getDb();
+        $tableName = static::getTableName();
+        $fields = array_map(
+			function(BaseField $field) use($tableName) {
+	            return "{$tableName}.{$field->getColumn()}";
+	        },
+			static::getSchema()
+		);
 
-		return (new ActiveQuery($class))->select($fields)->from([$table]);
+		$class = get_called_class();
+		return (new ActiveQuery($db, $class))->select($fields)->from([$tableName]);
 	}
 
 	public static function findOne($where = null)
@@ -228,7 +206,7 @@ abstract class ActiveRecord implements \ArrayAccess
 		}
 		elseif (is_scalar($where)) {
 			$where = [
-				static::getPrimaryKey() => $where
+				static::getPrimaryKey()->getColumn() => $where
 			];
 		}
 		return static::find()->where($where)->one();
