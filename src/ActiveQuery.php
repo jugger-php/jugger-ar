@@ -2,9 +2,8 @@
 
 namespace jugger\ar;
 
-use Exception;
-use ReflectionClass;
 use jugger\db\Query;
+use jugger\db\ConnectionInterface;
 use jugger\ar\relations\RelationInterface;
 use jugger\ar\mapping\ForeignKey;
 use jugger\ar\mapping\AssociationKey;
@@ -13,12 +12,9 @@ class ActiveQuery extends Query
 {
 	protected $className;
 
-	public function __construct(string $className)
+	public function __construct(ConnectionInterface $db, string $className)
     {
-		$ar = new ReflectionClass('jugger\ar\ActiveRecord');
-		if ($ar->isInstance(new $className) === false) {
-			throw new Exception("Class of argument must be child of 'ActiveRecord'");
-		}
+		parent::__construct($db);
 
 		$this->className = $className;
 		$this->from($className::getTableName());
@@ -26,10 +22,8 @@ class ActiveQuery extends Query
 
 	protected function createRecord(array $attributes)
 	{
-		$class = $this->className;
-		$record = new $class();
-		$record->isNewRecord = false;
-		$record->setFields($attributes);
+		$record = new $this->className();
+		$record->setValues($attributes);
 		return $record;
 	}
 
@@ -66,40 +60,22 @@ class ActiveQuery extends Query
      * @param  [type] $where        [description]
      * @return [type]               [description]
      */
-    public function by(string $relationName, array $where = [])
+    public function by(string $relationName, array $where)
     {
-        $relation = $this->className::getRelations()[$relationName] ?? null;
+		$relations = $this->className::getRelations();
+        $relation = $relations[$relationName] ?? null;
         if (!$relation) {
-            throw new Exception("Relation '{$relationName}' not found in '{$this->className}' class");
+            throw new \Exception("Relation '{$relationName}' not found");
         }
 
-		if ($relation instanceof RelationInterface) {
-			$this->joinForeignKey($relation);
-		}
-		elseif ($relation instanceof AssociationKey) {
-			$keys = $relation->getKeys();
-			foreach ($keys as $key) {
-				$this->joinForeignKey($key);
-			}
-		}
+		$t1 = $this->db->quote($this->className::getTableName());
+		$c1 = $this->db->quote($relation->getSelfColumn());
+		$t2 = $this->db->quote($relation->getTargetTable());
+		$c2 = $this->db->quote($relation->getTargetColumn());
 
-		if (!empty($where)) {
-			$this->andWhere($where);
-		}
+		$this->innerJoin($t2, "{$t1}.{$c1} = {$t2}.{$c2}");
+		$this->where($where);
 
 		return $this;
     }
-
-	public function joinForeignKey(ForeignKey $key)
-	{
-		$selfTable = $this->from;
-		if (is_array($selfTable)) {
-			$selfTable = $selfTable[0];
-		}
-		$on  = "{$selfTable}.{$key->getSelfField()} = ";
-		$on .= "{$key->getTargetTable()}.{$key->getTargetField()}";
-		$this->innerJoin($key->getTargetTable(), $on);
-
-		return $this;
-	}
 }
