@@ -14,7 +14,12 @@ class Author extends ActiveRecord
         return 'author';
     }
 
-    public static function getFields()
+    public static function getDb()
+    {
+        return static::$_db ?? \Di::$pool['default'];
+    }
+
+    public static function getSchema()
     {
         return [
             new IntegerField([
