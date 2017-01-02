@@ -2,34 +2,57 @@
 
 namespace jugger\ar\relations;
 
-use jugger\ar\mapping\ForeignKey;
+use jugger\ar\ActiveRecord;
 
-abstract class Relation extends ForeignKey implements RelationInterface
+abstract class Relation
 {
     protected $many;
-    protected $value;
+    protected $selfColumn;
+    protected $targetClass;
+    protected $targetColumn;
+
+    public function __construct(string $selfColumn, string $targetColumn, string $targetClass)
+    {
+        $this->selfColumn = $selfColumn;
+        $this->targetClass = $targetClass;
+        $this->targetColumn = $targetColumn;
+    }
+
+    public function getSelfColumn()
+    {
+        return $this->selfColumn;
+    }
+
+    public function getTargetColumn()
+    {
+        return $this->targetColumn;
+    }
 
     public function getTargetTable()
     {
-        $class = $this->targetTable;
+        $class = $this->targetClass;
         return $class::getTableName();
     }
 
-    public function getValue($selfValue)
+    public function getQuery(ActiveRecord $model)
     {
-        if (!$this->value) {
-            $class = $this->targetTable;
-            $params = [
-                $this->targetField => $selfValue
-            ];
+        $tableName = $this->getTargetTable();
+        $where = [
+            "{$tableName}.{$this->targetColumn}" => $model[$this->selfColumn]
+        ];
 
-            if ($this->many) {
-                $this->value = $class::findAll($params);
-            }
-            else {
-                $this->value = $class::findOne($params);
-            }
+        return $this->targetClass::find()->where($where);
+    }
+
+    public function getValue(ActiveRecord $model)
+    {
+        if ($this->many) {
+            return $this->getQuery($model)->all();
+            // return $this->targetClass::findAll($where);
         }
-        return $this->value;
+        else {
+            return $this->getQuery($model)->one();
+            // return $this->targetClass::findOne($where);
+        }
     }
 }
