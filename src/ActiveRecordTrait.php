@@ -6,35 +6,57 @@ trait ActiveRecordTrait
 {
     public function __isset($name)
     {
-		return array_key_exists($name, $this->fields);
+        $fields = $this->getFields();
+		if (array_key_exists($name, $fields)) {
+			return true;
+		}
+
+        $relations = static::getRelations();
+        if (array_key_exists($name, $relations)) {
+            return true;
+		}
+
+        return false;
 	}
+
+    public function __unset($name)
+    {
+        $fields = $this->getFields();
+		if (array_key_exists($name, $fields)) {
+			$fields[$name]->setValue(null);
+		}
+    }
 
 	public function __get($name)
     {
-		if (array_key_exists($name, $this->fields)) {
-			return $this->fields[$name]->getValue();
+        $fields = $this->getFields();
+		if (array_key_exists($name, $fields)) {
+			return $fields[$name]->getValue();
 		}
-        elseif (array_key_exists($name, $this->relations)) {
-            $relation = $this->relations[$name];
-            $selfField = $relation->getSelfField();
-            $selfValue = $this->$selfField;
 
-            return $relation->getValue($selfValue);
+        $relations = static::getRelations();
+        if (array_key_exists($name, $relations)) {
+            return $relations[$name]->getValue($this);
 		}
-		else {
-			$class = get_called_class();
-			throw new \ErrorException("Field or relation '{$name}' not found in '{$class}'");
-		}
+
+		$class = get_called_class();
+		throw new \ErrorException("Field or relation '{$name}' not found");
 	}
 
 	public function __set($name, $value)
     {
-		if (array_key_exists($name, $this->fields)) {
-			$this->fields[$name]->setValue($value);
+        $fields = $this->getFields();
+		if (array_key_exists($name, $fields)) {
+			$fields[$name]->setValue($value);
+            return;
 		}
-		else {
-			$class = get_called_class();
-			throw new \ErrorException("Field '{$name}' not found in '{$class}'");
+
+        $relations = static::getRelations();
+        if (array_key_exists($name, $relations)) {
+            throw new \Exception("Field '{$name}' is relation! Must not set value for relation");
 		}
+
+		$class = get_called_class();
+		throw new \Exception("Field '{$name}' not found");
 	}
 }
