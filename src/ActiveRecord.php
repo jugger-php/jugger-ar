@@ -2,17 +2,16 @@
 
 namespace jugger\ar;
 
+use jugger\ar\validator\PrimaryValidator;
 use jugger\db\Command;
-use jugger\db\ConnectionPool;
-use jugger\ar\field\BaseField;
-use jugger\base\ArrayAccessTrait;
+use jugger\db\ConnectionInterface;
+use jugger\model\Model;
+use jugger\model\field\BaseField;
 
-abstract class ActiveRecord implements \ArrayAccess
+abstract class ActiveRecord extends Model
 {
 	use ActiveRecordTrait;
-	use ArrayAccessTrait;
 
-	protected $_fields;
 	protected static $_db;
 	protected static $_primaryKey;
 
@@ -21,9 +20,9 @@ abstract class ActiveRecord implements \ArrayAccess
 		$this->setValues($values);
 	}
 
-	public function isNewRecord()
+	public function isNewRecord(): bool
 	{
-		$primaryKey = static::getPrimaryKey()->getColumn();
+		$primaryKey = static::getPrimaryKey()->getName();
 		return is_null($this->$primaryKey);
 	}
 
@@ -32,69 +31,24 @@ abstract class ActiveRecord implements \ArrayAccess
 		static::$_db = $db;
 	}
 
-	public static function getDb()
+	public static function getDb(): ConnectionInterface
 	{
 		return static::$_db;
 	}
 
-    abstract public static function getSchema();
-
-	public function getFields()
-	{
-		if (!$this->_fields) {
-			$this->_fields = [];
-			$schema = static::getSchema();
-			foreach ($schema as $value) {
-				$key = $value->getColumn();
-				$this->_fields[$key] = $value;
-			}
-		}
-		return $this->_fields;
-	}
-
-	public function getField($name)
-	{
-		$fields = $this->getFields();
-		return $fields[$name] ?? null;
-	}
-
-    public function getColumns()
-    {
-		return array_keys($this->getFields());
-	}
-
-	public function setValues(array $values)
-    {
-		foreach ($values as $name => $value) {
-            $name = strtolower($name);
-			if (isset($this->$name)) {
-				$this->$name = $value;
-			}
-		}
-	}
-
-    public function getValues()
-    {
-        $values = [];
-        foreach ($this->getFields() as $column => $field) {
-            $values[$column] = $field->getValue();
-        }
-        return $values;
-    }
-
-	public static function getRelations()
+	public static function getRelations(): array
 	{
         return [];
     }
 
-	public static abstract function getTableName();
+	public static abstract function getTableName(): string;
 
-	public static function getPrimaryKey()
+	public static function getPrimaryKey(): BaseField
     {
 		if (!static::$_primaryKey) {
             $fields = static::getSchema();
-            foreach ($fields as $column => $field) {
-                if ($field->primary) {
+            foreach ($fields as $field) {
+                if ($field->existValidator(PrimaryValidator::class)) {
                     static::$_primaryKey = $field;
                     break;
                 }
@@ -106,39 +60,22 @@ abstract class ActiveRecord implements \ArrayAccess
         return static::$_primaryKey;
 	}
 
-    public function beforeSave()
+	public function save(): bool
     {
-        return true;
-    }
-
-	public function save()
-    {
-		if (!$this->beforeSave()) {
-			return false;
-		}
-
 		if ($this->isNewRecord()) {
-			$ret = $this->insert();
+			return $this->insert();
 		}
 		else {
-			$ret = $this->update();
+			return $this->update();
 		}
-
-		$this->afterSave();
-		return $ret;
 	}
 
-    public function afterSave()
-    {
-        // pass
-    }
-
-	public function insert()
+	protected function insert(): bool
     {
 		$db = static::getDb();
 		$values = $this->getValues();
 		$tableName = static::getTableName();
-		$primaryKey = static::getPrimaryKey()->getColumn();
+		$primaryKey = static::getPrimaryKey()->getName();
 
 		// $db->execute("LOCK TABLES `{$tableName}`");
 		$ret = (new Command($db))->insert($tableName, $values)->execute();
@@ -148,10 +85,10 @@ abstract class ActiveRecord implements \ArrayAccess
 		return $ret;
 	}
 
-	public function update()
+	protected function update()
     {
 		$values = $this->getValues();
-		$primaryKey = static::getPrimaryKey()->getColumn();
+		$primaryKey = static::getPrimaryKey()->getName();
 
 		return static::updateAll($values, [
 			$primaryKey => $this->$primaryKey
@@ -171,7 +108,7 @@ abstract class ActiveRecord implements \ArrayAccess
 			return false;
 		}
 
-		$primaryKey = static::getPrimaryKey()->getColumn();
+		$primaryKey = static::getPrimaryKey()->getName();
 		return static::deleteAll([
 			$primaryKey => $this->$primaryKey
 		]);
@@ -190,7 +127,7 @@ abstract class ActiveRecord implements \ArrayAccess
         $tableName = static::getTableName();
         $fields = array_map(
 			function(BaseField $field) use($tableName) {
-	            return "{$tableName}.{$field->getColumn()}";
+	            return "{$tableName}.{$field->getName()}";
 	        },
 			static::getSchema()
 		);
@@ -206,7 +143,7 @@ abstract class ActiveRecord implements \ArrayAccess
 		}
 		elseif (is_scalar($where)) {
 			$where = [
-				static::getPrimaryKey()->getColumn() => $where
+				static::getPrimaryKey()->getName() => $where
 			];
 		}
 		return static::find()->where($where)->one();
