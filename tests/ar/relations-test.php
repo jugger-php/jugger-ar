@@ -2,29 +2,31 @@
 
 use PHPUnit\Framework\TestCase;
 use jugger\ar\ActiveRecord;
-use jugger\ar\field\TextField;
-use jugger\ar\field\IntegerField;
 use jugger\ar\relations\OneRelation;
 use jugger\ar\relations\ManyRelation;
 use jugger\ar\relations\CrossRelation;
+use jugger\model\Model;
+use jugger\model\field\TextField;
+use jugger\model\field\IntField;
+use jugger\db\ConnectionInterface;
 
 class Category extends ActiveRecord
 {
-    public static function getTableName()
+    public static function getTableName(): string
     {
         return 'category';
     }
 
-    public static function getDb()
+    public static function getDb(): ConnectionInterface
     {
         return static::$_db ?? \Di::$pool['default'];
     }
 
-    public static function getSchema()
+    public static function getSchema(): array
     {
         return [
-            new IntegerField([
-                'column' => 'id',
+            new IntField([
+                'name' => 'id',
             ]),
         ];
     }
@@ -32,24 +34,24 @@ class Category extends ActiveRecord
 
 class Tag extends ActiveRecord
 {
-    public static function getTableName()
+    public static function getTableName(): string
     {
         return 'tag';
     }
 
-    public static function getDb()
+    public static function getDb(): ConnectionInterface
     {
         return static::$_db ?? \Di::$pool['default'];
     }
 
-    public static function getSchema()
+    public static function getSchema(): array
     {
         return [
-            new IntegerField([
-                'column' => 'id',
+            new IntField([
+                'name' => 'id',
             ]),
             new TextField([
-                'column' => 'name',
+                'name' => 'name',
             ]),
         ];
     }
@@ -57,24 +59,24 @@ class Tag extends ActiveRecord
 
 class Post extends ActiveRecord
 {
-    public static function getTableName()
+    public static function getTableName(): string
     {
         return 'post';
     }
 
-    public static function getDb()
+    public static function getDb(): ConnectionInterface
     {
         return static::$_db ?? \Di::$pool['default'];
     }
 
-    public static function getSchema()
+    public static function getSchema(): array
     {
         return [
-            new IntegerField([
-                'column' => 'id',
+            new IntField([
+                'name' => 'id',
             ]),
-            new IntegerField([
-                'column' => 'id_category',
+            new IntField([
+                'name' => 'id_category',
             ]),
         ];
     }
