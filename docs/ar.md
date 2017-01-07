@@ -14,7 +14,7 @@ CREATE TABLE `user` (
 Класс AR будет выглядеть следующим образом:
 ```php
 use jugger\ar\ActiveRecord;
-use jugger\ar\field\IntegerField;
+use jugger\ar\field\IntField;
 use jugger\ar\field\TextField;
 
 class User extends ActiveRecord
@@ -27,7 +27,7 @@ class User extends ActiveRecord
     public static function getFields()
     {
         return [
-            new IntegerField([
+            new IntField([
                 'column' => 'id',
                 'primary' => true,
                 'autoIncrement' => true,
@@ -128,7 +128,7 @@ CREATE TABLE `attribute` (
 Класс AR будет выглядеть следующим образом:
 ```php
 use jugger\ar\ActiveRecord;
-use jugger\ar\field\IntegerField;
+use jugger\ar\field\IntField;
 use jugger\ar\field\TextField;
 
 class Attribute extends ActiveRecord
@@ -141,12 +141,12 @@ class Attribute extends ActiveRecord
     public static function getFields()
     {
         return [
-            new IntegerField([
+            new IntField([
                 'column' => 'id',
                 'primary' => true,
                 'autoIncrement' => true,
             ]),
-            new IntegerField([
+            new IntField([
                 'column' => 'id_user',
             ]),
             new TextField([
