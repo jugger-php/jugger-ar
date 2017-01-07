@@ -140,8 +140,8 @@ class <?= $className ?> extends ActiveRecord
     public static function buildFieldClass($type, & $useList, & $params) {
         switch ($type) {
             case 'int':
-                $useList[] = 'jugger\ar\field\IntegerField';
-                return 'IntegerField';
+                $useList[] = 'jugger\ar\field\IntField';
+                return 'IntField';
             case 'decimal':
                 $useList[] = 'jugger\ar\field\NumberField';
                 return 'NumberField';
