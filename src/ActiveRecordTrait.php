@@ -4,7 +4,7 @@ namespace jugger\ar;
 
 trait ActiveRecordTrait
 {
-    public function __isset($name)
+    public function __isset(string $name)
     {
         $fields = $this->getFields();
 		if (array_key_exists($name, $fields)) {
@@ -19,7 +19,7 @@ trait ActiveRecordTrait
         return false;
 	}
 
-    public function __unset($name)
+    public function __unset(string $name)
     {
         $fields = $this->getFields();
 		if (array_key_exists($name, $fields)) {
@@ -27,7 +27,7 @@ trait ActiveRecordTrait
 		}
     }
 
-	public function __get($name)
+	public function __get(string $name)
     {
         $fields = $this->getFields();
 		if (array_key_exists($name, $fields)) {
@@ -43,7 +43,7 @@ trait ActiveRecordTrait
 		throw new \ErrorException("Field or relation '{$name}' not found");
 	}
 
-	public function __set($name, $value)
+	public function __set(string $name, $value)
     {
         $fields = $this->getFields();
 		if (array_key_exists($name, $fields)) {
