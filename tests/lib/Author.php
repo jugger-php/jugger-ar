@@ -3,41 +3,44 @@
 namespace tests;
 
 use jugger\ar\ActiveRecord;
-use jugger\ar\field\TextField;
-use jugger\ar\field\IntegerField;
+use jugger\db\ConnectionInterface;
+use jugger\model\Model;
+use jugger\model\field\TextField;
+use jugger\model\field\IntField;
 use jugger\ar\relations\OneRelation;
+use jugger\ar\validator\PrimaryValidator;
 
 class Author extends ActiveRecord
 {
-    public static function getTableName()
+    public static function getTableName(): string
     {
         return 'author';
     }
 
-    public static function getDb()
+    public static function getDb(): ConnectionInterface
     {
         return static::$_db ?? \Di::$pool['default'];
     }
 
-    public static function getSchema()
+    public static function getSchema(): array
     {
         return [
-            new IntegerField([
-                'column' => 'id',
-                'primary' => true,
-                'autoIncrement' => true,
+            new IntField([
+                'name' => 'id',
+                'validators' => [
+                    new PrimaryValidator()
+                ],
             ]),
-            new IntegerField([
-                'column' => 'id_post',
+            new IntField([
+                'name' => 'id_post',
             ]),
             new TextField([
-                'column' => 'name',
-                'default' => null,
+                'name' => 'name',
             ]),
         ];
     }
 
-    public static function getRelations()
+    public static function getRelations(): array
     {
         return [
             'post' => new OneRelation('id_post', 'id', 'tests\Post'),
