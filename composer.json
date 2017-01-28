@@ -1,6 +1,5 @@
 {
     "name": "jugger-php/jugger-ar",
-    "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
             "jugger\\ar\\": "src/"
@@ -8,7 +7,7 @@
     },
     "require": {
         "php": "^7.0.9",
-        "jugger-php/jugger-base": "~1.0",
-        "jugger-php/jugger-db": "~1.0"
+        "jugger-php/jugger-base": "^1",
+        "jugger-php/jugger-db": "^1"
     }
 }
