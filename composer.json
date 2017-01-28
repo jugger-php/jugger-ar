@@ -7,7 +7,7 @@
     },
     "require": {
         "php": "^7.0.9",
-        "jugger-php/jugger-base": "^1",
+        "jugger-php/jugger-model": "^1",
         "jugger-php/jugger-db": "^1"
     }
 }
