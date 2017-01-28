@@ -12,13 +12,7 @@ abstract class ActiveRecord extends Model
 {
 	use ActiveRecordTrait;
 
-	protected static $_db;
 	protected static $_primaryKey;
-
-	public function __construct(array $values = [])
-    {
-		$this->setValues($values);
-	}
 
 	public function isNewRecord(): bool
 	{
@@ -26,14 +20,9 @@ abstract class ActiveRecord extends Model
 		return is_null($this->$primaryKey);
 	}
 
-	public static function setDb(ConnectionInterface $db)
-	{
-		static::$_db = $db;
-	}
-
 	public static function getDb(): ConnectionInterface
 	{
-		return static::$_db;
+		return null;
 	}
 
 	public static function getRelations(): array
