@@ -77,15 +77,13 @@ abstract class ActiveRecord extends Model
 		$tableName = static::getTableName();
 		$primaryKey = static::getPrimaryKey()->getName();
 
-		// $db->execute("LOCK TABLES `{$tableName}`");
 		$ret = (new Command($db))->insert($tableName, $values)->execute();
 		$this->$primaryKey = $db->getLastInsertId();
-		// $db->execute("UNLOCK TABLES");
 
 		return $ret;
 	}
 
-	protected function update()
+	protected function update(): bool
     {
 		$values = $this->getValues();
 		$primaryKey = static::getPrimaryKey()->getName();
@@ -95,14 +93,14 @@ abstract class ActiveRecord extends Model
 		]);
 	}
 
-	public static function updateAll(array $values, $where)
+	public static function updateAll(array $values, $where): int
 	{
 		$db = static::getDb();
 		$tableName = static::getTableName();
 		return (new Command($db))->update($tableName, $values, $where)->execute();
 	}
 
-	public function delete()
+	public function delete(): bool
 	{
 		if ($this->isNewRecord()) {
 			return false;
@@ -114,16 +112,16 @@ abstract class ActiveRecord extends Model
 		]);
 	}
 
-	public static function deleteAll($where)
+	public static function deleteAll($where): int
 	{
 		$db = static::getDb();
 		$tableName = static::getTableName();
 		return (new Command($db))->delete($tableName, $where)->execute();
 	}
 
-	public static function find(ConnectionInterface $db = null)
+	public static function find(): ActiveQuery
     {
-		$db = $db ?? static::getDb();
+		$db = static::getDb();
         $tableName = static::getTableName();
         $fields = array_map(
 			function(BaseField $field) use($tableName) {
