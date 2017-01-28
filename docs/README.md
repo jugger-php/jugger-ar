@@ -6,5 +6,5 @@ AR содержит в себе рутинные CRUD (Create Read Update Delete
 
 ## Содержание
 
-- [Активные записи](ar.md)
-- [Типы полей](fields.md)
+1. [ActiveRecord](ar.md)
+2. [RelationInterface: связи между объектами](relations.md)
