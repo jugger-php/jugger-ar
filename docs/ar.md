@@ -1,232 +1,190 @@
 # Active Record
 
-## Создание и генерация класса
+## Создание
 
-Допустим имеется таблица:
-```php
-CREATE TABLE `user` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `username` VARCHAR(100) NOT NULL,
-    `password` VARCHAR(100) DEFAULT NULL,
+Допустим имеется таблица `post`:
+```sql
+CREATE TABLE `post` (
+    `id` INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL,
+    `title` VARCHAR(100) NOT NULL,
+    `content` TEXT
 )
 ```
 
-Класс AR будет выглядеть следующим образом:
+AR класс для таблицы будет выглядеть так:
 ```php
+use jugger\db\ConnectionInterface;
 use jugger\ar\ActiveRecord;
-use jugger\ar\field\IntField;
-use jugger\ar\field\TextField;
+use jugger\ar\validator\PrimaryValidator;
+use jugger\model\field\TextField;
+use jugger\model\field\IntField;
+use jugger\model\validator\RangeValidator;
 
-class User extends ActiveRecord
+class Post extends ActiveRecord
 {
-    public static function tableName()
+    /**
+     * возвращает имя таблицы
+     */
+    public static function getTableName(): string
     {
-        return 'b_iblock_section_element';
+        return 'post';
     }
 
-    public static function getFields()
+    /**
+     * возращает объект соединения с базой,
+     * которая хранит таблицу
+     */
+    public static function getDb(): ConnectionInterface
+    {
+        return \Di::$c->db;
+    }
+
+    /**
+     * возвращает структуру таблицы
+     */
+    public static function getSchema(): array
     {
         return [
             new IntField([
-                'column' => 'id',
-                'primary' => true,
-                'autoIncrement' => true,
+                'name' => 'id',
+                'validators' => [
+                    new PrimaryValidator(),
+                ],
             ]),
             new TextField([
-                'column' => 'username',
-                'length' => 100,
+                'name' => 'title',
+                'validators' => [
+                    new RangeValidator(1, 100)
+                ],
             ]),
             new TextField([
-                'column' => 'password',
-                'length' => 100,
-                'default' => null,
+                'name' => 'content',
             ]),
         ];
     }
 }
 ```
 
-Каждый столбец описывается соответствующих классом типа данных. [Подробнее](fields.md).
+Метод `getSchema` ничем не отличается от аналогичного метода в классе `Model`, подробнее можно узнать в соответствующей документации. [Подробнее про Model](https://github.com/jugger-php/jugger-model/blob/master/docs/README.md).
 
-## Создание и поиск записей
+Стоит обратить внимание на `PrimaryValidator` - это единственное отличие от полей и валидаторов `Model`. Данные валидатор показывает, что поле (*столбец*) является первичным ключем.
 
-Для создания новой записи достаточно просто создать новый экземпляр класса:
+Метод `getDb` - в данном методе возвращается экземпляр базы данных `ConnectionInterface`. В данном примере используется контейнер зависимостей. [Подробнее про Di](https://github.com/jugger-php/jugger-di/blob/master/docs/README.md).
+
+## Добавление и сохранение
+
+`ActiveRecord` позволяет работать со строками таблиц БД, как с обычными объектами:
 ```php
-$user = new User();
-$user->username = 'irpsv';
-$user->password = '123456';
-$user->save();
+// создание
+$post = new Post();
+$post->title = "Заголовок";
+$post->content = "Содержание";
+
+// после сохранения записи первичный ключ обновляется автоматически
+$post->id; // NULL
+$post->save();
+$post->id; // 1
+
+// удаление
+$post->delete();
+
+// после удаления объект не уничтожается, и вы можете использовать его далее
+$post->save();
+$post->id; // 2
+
+// массовое обновление
+$values = [
+    'title' => "Новый заголовок"
+];
+$where = [
+    '>id' => 10
+];
+Post::updateAll($values, $where);
+
+// массовое удаление
+Post::deleteAll($where);
 ```
-После вызова метода `save` будет выполнен непосредственно запрос к БД.
 
-Для поиска и выборки записей используются методы `find`:
+Методы `save`, `updateAll`, `delete` и `deleteAll` возвращают количество затронутых строк.
+
+Метод `updateAll` в качестве параметра `values` принимает массив ключами которого являются столбцы, а значениями - значения.
+
+Методы `updateAll` и `deleteAll` в качестве параметра `where` принимают массив со списком условий. Оба методы являются оберткой над другими методами: `Command->update` и `Command->delete` соответственно. [Подробнее про Command](https://github.com/jugger-php/jugger-db/blob/master/docs/README.md).
+
+
+## ActiveRecord extends Model
+
+Объект `ActiveRecord` также является объектом `Model`, поэтому допустимы следующие конструкции:
 ```php
-// SELECT * FROM `user` WHERE `username` = 'irpsv' LIMIT 1
-User::findOne([
-    'username' => 'irpsv'
+// присвоение в конструкторе
+$post = new Post([
+    'title' => "Заголовок",
+    'content' => "Содержание",
 ]);
-// SELECT * FROM `user` WHERE (`username` = 'irpsv') OR (`password` LIKE '123456%')
-User::findAll([
-    'or',
-    ['username' => 'irpsv'],
-    ['%password' => '123546%'],
+
+// получение/установка значений
+$values = $post->getValues();
+$post->setValues($values);
+
+// грязная запись
+$post->setValues([
+    'test' => 'value',
+    'title' => 'title',
 ]);
-// ActiveQuery
-User::find();
+$post->test; // throw Exception
+$post->title; // title
+
+
+// ArrayAccess
+$post->id = $post['id'];
 ```
 
-Метод `find` возвращает объект запроса `ActiveQuery`, который позволяет изменить запрос перед выполнением.
+Обратите внимание, что если искомого поля не существует, то выкидывается исключение (такое поведение тянется от модели, поэтому если вас такое поведение смутило, стоит ознакомиться со структурой `Model`). [Подробнее про Model](https://github.com/jugger-php/jugger-model/blob/master/docs/README.md).
 
-## Удаление записей
+## QueryBuilder
 
-Удалить запись можно двумя способами:
+Помимо создания объектов, AR также позволяет и производить их поиск:
 ```php
-// удаление одной записи
-User::findOne(['id' => 1])->delete();
-// удаление всех записей удовлетворяющих условию
-User::deleteAll(['id' => 1]);
+// объект запроса
+$query = Post::find();
+
+// первый элемент в списке, объект Post
+$post = Post::findOne();
+$post->id == $query->one()->id; // true
+
+// список всех элементов, возвращает список объектов Post
+$posts = Post::findAll();
+$posts == $query->all(); // true
+
+// поиск записи по ID
+$post = Post::findOne(123);
+$post = $query->where(['id' => 123])->one();
+
+// поиск записи по условию
+$post = Post::findOne(["title" => "..."]);
+$post = $query->where(["title" => "..."])->one();
+
+// поиск всеъ записей по условию
+$posts = Post::findAll([
+    "title" => [
+        'title1',
+        'title2',
+        '...'
+    ]
+]);
+$posts = $query->where([
+    "title" => [
+        'title1',
+        'title2',
+        '...'
+    ]
+])->all();
 ```
 
-## Active Query
+Метод `find` возвращает объект `ActiveQuery`, который является наследником `Query` и содержит все его методы. [Подробнее про Query](https://github.com/jugger-php/jugger-db/blob/master/docs/README.md).
 
-Active Query (AQ) - это надстройка (дочерний класс) над классом `Query`, который является построителем запросов.
-AQ является дополненным построителем запросов, который возвращает объекты сущности, а не массивы и позволяет использовать каскадные запросы к связным таблицам (об этом далее).
+## Связи между объектами
 
-Пример работы с AQ:
-```php
-// получаем объект ActiveQuery
-$query = User::find();
-$query->build(); // === SELECT * FROM `user`
+Для удобства работы, также можно указывать связи между объектами. Об этом далее...
 
-// получаем объекты User
-$user = $query->one(); // === User::findOne();
-$users = $query->all(); // === User::findAll();
-
-// в остальном, это обычный Query
-$query->where([
-        '%name' => '123'
-    ])
-    ->orderBy([
-        'id' => 'ASC'
-    ])
-    ->one(); // === SELECT * FROM `user` WHERE `name` LIKE '123' ORDER BY `id` ASC
-```
-
-## Связи сущностей
-
-Для сущностей, также можно указать их связи с другими сущностями.
-Для примера добавим таблицу `attribute`, которая будет иметь вид:
-```php
-CREATE TABLE `attribute` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `id_user` INT NOT NULL,
-    `name` VARCHAR(100) NOT NULL,
-    `value` VARCHAR(100) NOT NULL,
-)
-```
-
-Класс AR будет выглядеть следующим образом:
-```php
-use jugger\ar\ActiveRecord;
-use jugger\ar\field\IntField;
-use jugger\ar\field\TextField;
-
-class Attribute extends ActiveRecord
-{
-    public static function tableName()
-    {
-        return 'b_iblock_section_element';
-    }
-
-    public static function getFields()
-    {
-        return [
-            new IntField([
-                'column' => 'id',
-                'primary' => true,
-                'autoIncrement' => true,
-            ]),
-            new IntField([
-                'column' => 'id_user',
-            ]),
-            new TextField([
-                'column' => 'name',
-                'length' => 100,
-            ]),
-            new TextField([
-                'column' => 'value',
-                'length' => 100,
-            ]),
-        ];
-    }
-
-    public static function getRelations()
-    {
-        return [
-            'user' => [
-                'class' => 'User',
-                'relation' => ['id_user' => 'id'],
-            ],
-        ];
-    }
-}
-```
-
-Для класса `User` также можно добавить информацию о связи:
-```php
-class User extends ActiveRecord
-{
-    // ...
-
-    public static function getRelations()
-    {
-        return [
-            'attributes' => [
-                'class' => 'Attribute',
-                'relation' => ['id' => 'id_user'],
-                'many' => true,
-            ],
-        ];
-    }
-}
-```
-
-Информация о связи формируется следующим образом:
-```php
-'имя свойства' => [
-    'class' => 'полное\имя\класса',
-    'relation' => ['столбец в текущей таблице' => 'столбец в связной таблице'],
-    'many' => true, // определяет тип связи 1:* или *:1
-]
-```
-
-Когда указана связь, можно обратиться к экземпляру связной таблицы, как к обычному свойству:
-```php
-$attribute = Attribute::findOne(['id_user' => 1]);
-
-// получаем объект пользователя
-$user = $attribute->user; // === User::findOne(['id' => 1])
-
-// получаем список атрибутов пользователя
-// обратите внимание на возвращаемое значение
-// если указан параметр 'many' в определении связи,
-// то всегда будет возвращаться массив (пустой или с данными)
-$user->attributes; // === Attribute::findAll(['id_user' => 1]);
-
-```
-
-Также, можно писать каскадные запросы при поиске записей:
-```php
-Attribute::find()
-    ->by('user', [
-        `%username` => '%abc%'
-    ])
-    ->one();
-
-// Эквивалентный запрос:
-// SELECT `attribute`.*
-// FROM `attribute`
-// INNER JOIN `user` ON `attribute`.`id_user` = `user`.`id`
-// WHERE `username` LIKE '%abc%'
-// LIMIT 1
-```
+[RelationInterface: связи между объектами](relations.md)
