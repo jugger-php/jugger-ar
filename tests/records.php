@@ -1,19 +1,55 @@
 <?php
 
 use jugger\ar\ActiveRecord;
-use jugger\ar\validator\PrimaryValidator;
-use jugger\db\ConnectionInterface;
-use jugger\model\field\TextField;
-use jugger\model\field\IntField;
 use jugger\ar\relations\OneRelation;
 use jugger\ar\relations\ManyRelation;
-use jugger\ar\relations\CrossRelation;
+use jugger\ar\validator\PrimaryValidator;
+
+use jugger\db\ConnectionInterface;
+
+use jugger\model\field\TextField;
+use jugger\model\field\IntField;
+use jugger\model\validator\RangeValidator;
+
+class Post extends ActiveRecord
+{
+    public static function getTableName(): string
+    {
+        return 'post';
+    }
+
+    public static function getDb(): ConnectionInterface
+    {
+        return \Di::$pool['default'];
+    }
+
+    public static function getSchema(): array
+    {
+        return [
+            new IntField([
+                'name' => 'id',
+                'validators' => [
+                    new PrimaryValidator(),
+                ],
+            ]),
+            new TextField([
+                'name' => 'title',
+                'validators' => [
+                    new RangeValidator(1, 100)
+                ],
+            ]),
+            new TextField([
+                'name' => 'content',
+            ]),
+        ];
+    }
+}
 
 class Section extends ActiveRecord
 {
     public static function getTableName(): string
     {
-        return 'b_iblock_section';
+        return 'section';
     }
 
     public static function getDb(): ConnectionInterface
@@ -39,7 +75,7 @@ class Section extends ActiveRecord
     public static function getRelations(): array
     {
         return [
-            'elements' => (new ManyRelation('id', 'iblock_section_id', 'SectionElement'))->next('iblock_element_id', 'id', 'Element'),
+            'elements' => (new ManyRelation('id', 'id_section', 'SectionElement'))->next('id_element', 'id', 'Element'),
         ];
     }
 }
@@ -48,7 +84,7 @@ class SectionElement extends ActiveRecord
 {
     public static function getTableName(): string
     {
-        return 'b_iblock_section_element';
+        return 'section_element';
     }
 
     public static function getDb(): ConnectionInterface
@@ -66,10 +102,10 @@ class SectionElement extends ActiveRecord
                 ],
             ]),
             new IntField([
-                'name' => 'iblock_element_id',
+                'name' => 'id_element',
             ]),
             new IntField([
-                'name' => 'iblock_section_id',
+                'name' => 'id_section',
             ]),
         ];
     }
@@ -77,8 +113,8 @@ class SectionElement extends ActiveRecord
     public static function getRelations(): array
     {
         return [
-            'section' => new OneRelation('iblock_section_id', 'id', 'Section'),
-            'element' => new OneRelation('iblock_element_id', 'id', 'Element'),
+            'section' => new OneRelation('id_section', 'id', 'Section'),
+            'element' => new OneRelation('id_element', 'id', 'Element'),
         ];
     }
 }
@@ -87,7 +123,7 @@ class Element extends ActiveRecord
 {
     public static function getTableName(): string
     {
-        return 'b_iblock_element';
+        return 'element';
     }
 
     public static function getDb(): ConnectionInterface
@@ -113,8 +149,8 @@ class Element extends ActiveRecord
     public static function getRelations(): array
     {
         return [
-            'sections' => (new ManyRelation('id', 'iblock_element_id', 'SectionElement'))->next('iblock_section_id', 'id', 'Section'),
-            'properties' => new ManyRelation('id', 'iblock_element_id', 'ElementProperty'),
+            'sections' => (new ManyRelation('id', 'id_element', 'SectionElement'))->next('id_section', 'id', 'Section'),
+            'properties' => new ManyRelation('id', 'id_element', 'ElementProperty'),
         ];
     }
 }
@@ -123,7 +159,7 @@ class ElementProperty extends ActiveRecord
 {
     public static function getTableName(): string
     {
-        return 'b_iblock_element_property';
+        return 'element_property';
     }
 
     public static function getDb(): ConnectionInterface
@@ -141,10 +177,10 @@ class ElementProperty extends ActiveRecord
                 ],
             ]),
             new IntField([
-                'name' => 'iblock_element_id',
+                'name' => 'id_element',
             ]),
             new IntField([
-                'name' => 'iblock_property_id',
+                'name' => 'id_property',
             ]),
             new TextField([
                 'name' => 'value',
@@ -158,9 +194,8 @@ class ElementProperty extends ActiveRecord
     public static function getRelations(): array
     {
         return [
-            'element' => new OneRelation('iblock_element_id', 'id', 'Element'),
-            'property' => new OneRelation('iblock_property_id', 'id', 'Property'),
-            'enumValues' => new ManyRelation('value_enum', 'id', 'PropertyEnum'),
+            'element' => new OneRelation('id_element', 'id', 'Element'),
+            'property' => new OneRelation('id_property', 'id', 'Property'),
         ];
     }
 }
@@ -169,7 +204,7 @@ class Property extends ActiveRecord
 {
     public static function getTableName(): string
     {
-        return 'b_iblock_property';
+        return 'property';
     }
 
     public static function getDb(): ConnectionInterface
@@ -195,7 +230,7 @@ class Property extends ActiveRecord
     public static function getRelations(): array
     {
         return [
-            'values' => new ManyRelation('id', 'iblock_property_id', 'PropertyEnum'),
+            'values' => new ManyRelation('id', 'id_property', 'PropertyEnum'),
         ];
     }
 }
@@ -204,7 +239,7 @@ class PropertyEnum extends ActiveRecord
 {
     public static function getTableName(): string
     {
-        return 'b_iblock_property_enum';
+        return 'property_enum';
     }
 
     public static function getDb(): ConnectionInterface
@@ -222,7 +257,7 @@ class PropertyEnum extends ActiveRecord
                 ],
             ]),
             new IntField([
-                'name' => 'iblock_property_id',
+                'name' => 'id_property',
             ]),
             new TextField([
                 'name' => 'value',
@@ -233,7 +268,7 @@ class PropertyEnum extends ActiveRecord
     public static function getRelations(): array
     {
         return [
-            'property' => new OneRelation('iblock_property_id', 'id', 'Property'),
+            'property' => new OneRelation('id_property', 'id', 'Property'),
         ];
     }
 }

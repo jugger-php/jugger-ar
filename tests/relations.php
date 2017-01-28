@@ -12,48 +12,48 @@ class RelationsTest extends TestCase
     public static function setUpBeforeClass()
     {
         $sql = "
-            CREATE TABLE b_iblock_property (
+            CREATE TABLE property (
                 id INTEGER PRIMARY KEY AUTO_INCREMENT,
                 name TEXT
             );
 
-            CREATE TABLE b_iblock_property_enum (
+            CREATE TABLE property_enum (
                 id INTEGER PRIMARY KEY AUTO_INCREMENT,
-                iblock_property_id INT,
+                id_property INT,
                 value TEXT
             );
 
-            CREATE TABLE b_iblock_element (
+            CREATE TABLE element (
                 id INTEGER PRIMARY KEY AUTO_INCREMENT,
                 name TEXT
             );
 
-            CREATE TABLE b_iblock_element_property (
+            CREATE TABLE element_property (
                 id INTEGER PRIMARY KEY AUTO_INCREMENT,
-                iblock_element_id INT,
-                iblock_property_id INT,
+                id_element INT,
+                id_property INT,
                 value TEXT,
                 value_enum INT
             );
 
-            CREATE TABLE b_iblock_section (
+            CREATE TABLE section (
                 id INTEGER PRIMARY KEY AUTO_INCREMENT,
                 name TEXT
             );
 
-            CREATE TABLE b_iblock_section_element (
+            CREATE TABLE section_element (
                 id INTEGER PRIMARY KEY AUTO_INCREMENT,
-                iblock_element_id INT,
-                iblock_section_id INT
+                id_element INT,
+                id_section INT
             )
         ";
         $db = Di::$pool['default'];
-        $db->execute("DROP TABLE IF EXISTS b_iblock_property");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_property_enum");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_element");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_element_property");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_section");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_section_element");
+        $db->execute("DROP TABLE IF EXISTS property");
+        $db->execute("DROP TABLE IF EXISTS property_enum");
+        $db->execute("DROP TABLE IF EXISTS element");
+        $db->execute("DROP TABLE IF EXISTS element_property");
+        $db->execute("DROP TABLE IF EXISTS section");
+        $db->execute("DROP TABLE IF EXISTS section_element");
 
         $sqls = explode(';', $sql);
         foreach ($sqls as $sql) {
@@ -64,12 +64,12 @@ class RelationsTest extends TestCase
     public static function tearDownAfterClass()
     {
         $db = Di::$pool['default'];
-        $db->execute("DROP TABLE IF EXISTS b_iblock_property");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_property_enum");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_element");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_element_property");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_section");
-        $db->execute("DROP TABLE IF EXISTS b_iblock_section_element");
+        $db->execute("DROP TABLE IF EXISTS property");
+        $db->execute("DROP TABLE IF EXISTS property_enum");
+        $db->execute("DROP TABLE IF EXISTS element");
+        $db->execute("DROP TABLE IF EXISTS element_property");
+        $db->execute("DROP TABLE IF EXISTS section");
+        $db->execute("DROP TABLE IF EXISTS section_element");
     }
 
     public function testCreate()
@@ -102,61 +102,65 @@ class RelationsTest extends TestCase
         $p2->save();
 
         $pe1 = new PropertyEnum([
-            'iblock_property_id' => $p1->id,
+            'id_property' => $p1->id,
             'value' => 'enum value 1',
         ]);
         $pe1->save();
 
         $pe2 = new PropertyEnum([
-            'iblock_property_id' => $p1->id,
+            'id_property' => $p1->id,
             'value' => 'enum value 2',
         ]);
         $pe2->save();
 
         $pe3 = new PropertyEnum([
-            'iblock_property_id' => $p1->id,
+            'id_property' => $p1->id,
             'value' => 'enum value 3',
         ]);
         $pe3->save();
         // set values
 
         (new ElementProperty([
-            'iblock_element_id' => $e1->id,
-            'iblock_property_id' => $p1->id,
+            'id_element' => $e1->id,
+            'id_property' => $p1->id,
             'value' => 'test value 1',
         ]))->save();
         (new ElementProperty([
-            'iblock_element_id' => $e2->id,
-            'iblock_property_id' => $p2->id,
+            'id_element' => $e2->id,
+            'id_property' => $p2->id,
             'value' => 'test value 2',
         ]))->save();
         (new ElementProperty([
-            'iblock_element_id' => $e2->id,
-            'iblock_property_id' => $p1->id,
+            'id_element' => $e2->id,
+            'id_property' => $p1->id,
             'value_enum' => $pe1->id,
         ]))->save();
         (new ElementProperty([
-            'iblock_element_id' => $e2->id,
-            'iblock_property_id' => $p1->id,
+            'id_element' => $e2->id,
+            'id_property' => $p1->id,
             'value_enum' => $pe2->id,
         ]))->save();
         (new ElementProperty([
-            'iblock_element_id' => $e2->id,
-            'iblock_property_id' => $p1->id,
+            'id_element' => $e2->id,
+            'id_property' => $p1->id,
             'value_enum' => $pe3->id,
         ]))->save();
 
         (new SectionElement([
-            'iblock_section_id' => $s1->id,
-            'iblock_element_id' => $e1->id,
+            'id_section' => $s1->id,
+            'id_element' => $e1->id,
         ]))->save();
         (new SectionElement([
-            'iblock_section_id' => $s2->id,
-            'iblock_element_id' => $e1->id,
+            'id_section' => $s2->id,
+            'id_element' => $e1->id,
+        ]))->save();
+        (new SectionElement([
+            'id_section' => $s2->id,
+            'id_element' => $e2->id,
         ]))->save();
 
         (new PropertyEnum([
-            'iblock_property_id' => $p2->id,
+            'id_property' => $p2->id,
             'value' => 'enum value 5',
         ]))->save();
 
@@ -171,15 +175,16 @@ class RelationsTest extends TestCase
         list($e1, $e2, $s1, $s2, $p1, $p2, $pe1, $pe2, $pe3) = $models;
 
         $this->assertTrue(count($s1->elements) == 1);
-        $this->assertTrue(count($s2->elements) == 1);
+        $this->assertTrue(count($s2->elements) == 2);
 
         $this->assertEquals($s1->elements[0]->id, $e1->id);
         $this->assertEquals($s2->elements[0]->id, $e1->id);
+        $this->assertEquals($s2->elements[1]->id, $e2->id);
 
         $sections = Section::find()
             ->distinct()
             ->byElements([
-                'b_iblock_element.name' => 'elem1',
+                'element.name' => 'elem1',
             ])
             ->all();
 
@@ -195,10 +200,10 @@ class RelationsTest extends TestCase
         $sections = Section::find()
             ->distinct()
             ->byElements([
-                'b_iblock_element.name' => 'elem2',
+                'element.name' => 'elem2',
             ])
             ->all();
-        $this->assertEmpty($sections);
+        $this->assertTrue(count($sections) == 1);
     }
 
     /**
@@ -210,16 +215,19 @@ class RelationsTest extends TestCase
 
         $query = SectionElement::find()
             ->byElement([
-                'b_iblock_element.name' => 'elem1'
+                'element.name' => 'elem1'
             ])
             ->bySection([
-                'b_iblock_section.name' => 'sec2',
+                'section.name' => 'sec2',
             ]);
 
         $items = $query->all();
         $this->assertTrue(count($items) == 1);
-        $this->assertEquals($items[0]->iblock_element_id, $e1->id);
-        $this->assertEquals($items[0]->iblock_section_id, $s2->id);
+        $this->assertEquals($items[0]->id_element, $e1->id);
+        $this->assertEquals($items[0]->element->id, $e1->id);
+
+        $this->assertEquals($items[0]->id_section, $s2->id);
+        $this->assertEquals($items[0]->section->id, $s2->id);
     }
 
     /**
@@ -231,38 +239,41 @@ class RelationsTest extends TestCase
 
         // sections
         $this->assertTrue(count($e1->sections) == 2);
-        $this->assertTrue(count($e2->sections) == 0);
+        $this->assertTrue(count($e2->sections) == 1);
 
         $this->assertEquals($e1->sections[0]->id, $s1->id);
         $this->assertEquals($e1->sections[1]->id, $s2->id);
 
+        $this->assertEquals($e2->sections[0]->id, $s2->id);
+
         $elements = Element::find()
             ->distinct()
             ->bySections([
-                'b_iblock_section.id' => [1,2,3],
+                'section.id' => [1,2,3],
             ])
             ->all();
 
-        $this->assertTrue(count($elements) == 1);
+        $this->assertTrue(count($elements) == 2);
         $this->assertEquals($elements[0]->id, $e1->id);
+        $this->assertEquals($elements[1]->id, $e2->id);
 
         // properties
         $this->assertTrue(count($e1->properties) == 1);
         $this->assertTrue(count($e2->properties) == 4);
 
-        $this->assertEquals($e1->properties[0]->iblock_property_id, $p1->id);
+        $this->assertEquals($e1->properties[0]->id_property, $p1->id);
         $this->assertEquals($e1->properties[0]->value, 'test value 1');
 
-        $this->assertEquals($e2->properties[0]->iblock_property_id, $p2->id);
+        $this->assertEquals($e2->properties[0]->id_property, $p2->id);
         $this->assertEquals($e2->properties[0]->value, 'test value 2');
 
-        $this->assertEquals($e2->properties[1]->iblock_property_id, $p1->id);
+        $this->assertEquals($e2->properties[1]->id_property, $p1->id);
         $this->assertEquals($e2->properties[1]->value_enum, $pe1->id);
 
-        $this->assertEquals($e2->properties[2]->iblock_property_id, $p1->id);
+        $this->assertEquals($e2->properties[2]->id_property, $p1->id);
         $this->assertEquals($e2->properties[2]->value_enum, $pe2->id);
 
-        $this->assertEquals($e2->properties[3]->iblock_property_id, $p1->id);
+        $this->assertEquals($e2->properties[3]->id_property, $p1->id);
         $this->assertEquals($e2->properties[3]->value_enum, $pe3->id);
 
         $elements = Element::find()
@@ -277,7 +288,7 @@ class RelationsTest extends TestCase
         // WTF example
         $this->assertEquals(
             $p1->id,
-            $e1->properties[0]->iblock_property_id
+            $e1->properties[0]->id_property
         );
         $this->assertEquals(
             $p1->id,
@@ -285,7 +296,7 @@ class RelationsTest extends TestCase
         );
         $this->assertEquals(
             $p1->id,
-            $e1->properties[0]->property->values[0]->iblock_property_id
+            $e1->properties[0]->property->values[0]->id_property
         );
         $this->assertEquals(
             $p1->id,
@@ -315,12 +326,12 @@ class RelationsTest extends TestCase
 
         $query = ElementProperty::find()
             ->byElement([
-                'b_iblock_element.name' => $e2->name,
+                'element.name' => $e2->name,
             ])
             ->byProperty([
-                'b_iblock_property.id' => $p1->id,
+                'property.id' => $p1->id,
             ])
-            ->andWhere([
+            ->where([
                 'value' => null,
             ]);
 
