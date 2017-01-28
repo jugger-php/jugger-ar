@@ -6,5 +6,5 @@ AR содержит в себе рутинные CRUD (Create Read Update Delete
 
 ## Содержание
 
-- [Основы](ar.md)
+- [Активные записи](ar.md)
 - [Типы полей](fields.md)
