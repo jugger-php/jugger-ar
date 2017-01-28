@@ -22,32 +22,27 @@ class ActiveQuery extends Query
 
 	protected function createRecord(array $attributes)
 	{
-		$record = new $this->className();
+		$class = $this->className;
+		$record = new $class();
 		$record->setValues($attributes);
 		return $record;
 	}
 
-	public function one(bool $asArray = false)
+	public function one()
 	{
 		$row = parent::one();
-		if ($asArray) {
-			return $row;
-		}
-		elseif (!$row) {
+		if (!$row) {
 			return null;
 		}
 		return $this->createRecord($row);
 	}
 
-	public function all(bool $asArray = false): array
+	public function all(): array
 	{
-		if ($asArray) {
-			return parent::all();
-		}
-
-		$rows = [];
+		$class = $this->className;
 		$result = $this->query();
-		$pk = $this->className::getPrimaryKey();
+		$rows = [];
+		$pk = $class::getPrimaryKey();
 		while ($row = $result->fetch()) {
 			$rows[] = $this->createRecord($row);
 		}
@@ -62,20 +57,31 @@ class ActiveQuery extends Query
      */
     public function by(string $relationName, array $where)
     {
-		$relations = $this->className::getRelations();
-        $relation = $relations[$relationName] ?? null;
+		$class = $this->className;
+        $relation = $class::getRelations()[$relationName] ?? null;
         if (!$relation) {
             throw new \Exception("Relation '{$relationName}' not found");
         }
 
-		$t1 = $this->db->quote($this->className::getTableName());
-		$c1 = $this->db->quote($relation->getSelfColumn());
-		$t2 = $this->db->quote($relation->getTargetTable());
-		$c2 = $this->db->quote($relation->getTargetColumn());
-
-		$this->innerJoin($t2, "{$t1}.{$c1} = {$t2}.{$c2}");
-		$this->where($where);
+		$joins = $relation->getJoins($class);
+		foreach ($joins as $join) {
+			list($table, $on) = $join;
+			$this->innerJoin($table, $on);
+		}
+		$this->andWhere($where);
 
 		return $this;
     }
+
+	public function __call($name, array $arguments)
+	{
+		$prefix = substr($name, 0, 2);
+		if ($prefix == 'by') {
+			$relationName = strtolower(substr($name, 2));
+			return $this->by($relationName, $arguments[0]);
+		}
+		else {
+			throw new \ErrorException("Method '{$name}' not found");
+		}
+	}
 }
