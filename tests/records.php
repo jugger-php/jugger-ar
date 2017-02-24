@@ -10,6 +10,7 @@ use jugger\db\ConnectionInterface;
 use jugger\model\field\TextField;
 use jugger\model\field\IntField;
 use jugger\model\validator\RangeValidator;
+use jugger\model\validator\RequireValidator;
 
 class Post extends ActiveRecord
 {
@@ -29,12 +30,14 @@ class Post extends ActiveRecord
             new IntField([
                 'name' => 'id',
                 'validators' => [
+                    new RequireValidator(),
                     new PrimaryValidator(),
                 ],
             ]),
             new TextField([
                 'name' => 'title',
                 'validators' => [
+                    new RequireValidator(),
                     new RangeValidator(1, 100)
                 ],
             ]),
