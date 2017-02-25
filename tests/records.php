@@ -30,7 +30,6 @@ class Post extends ActiveRecord
             new IntField([
                 'name' => 'id',
                 'validators' => [
-                    new RequireValidator(),
                     new PrimaryValidator(),
                 ],
             ]),
