@@ -2,15 +2,8 @@
 
 namespace jugger\ar\validator;
 
-use jugger\model\validator\BaseValidator;
+use jugger\model\validator\RequireValidator;
 
-/**
- * Fake validator
- */
-class PrimaryValidator extends BaseValidator
+class PrimaryValidator extends RequireValidator
 {
-    public function validate($value): bool
-    {
-        return true;
-    }
 }
