@@ -42,7 +42,7 @@ abstract class Migration
                 $size = $v->getMax();
             }
             elseif ($v instanceof PrimaryValidator) {
-                $attributes .= " PRIMARY KEY";
+                $attributes .= " NOT NULL PRIMARY KEY";
             }
             elseif ($v instanceof RequireValidator) {
                 $attributes .= " NOT NULL";
