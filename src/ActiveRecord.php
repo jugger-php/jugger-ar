@@ -20,7 +20,10 @@ abstract class ActiveRecord extends Model
 		return is_null($this->$primaryKey);
 	}
 
-	abstract public static function getDb(): ConnectionInterface;
+	public static function getDb(): ConnectionInterface
+	{
+		return \jugger\di\Di::$c->db;
+	}
 
 	public static function getRelations(): array
 	{
