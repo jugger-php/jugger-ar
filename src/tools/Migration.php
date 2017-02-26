@@ -3,6 +3,7 @@
 namespace jugger\ar\tools;
 
 use jugger\db\ConnectionInterface;
+use jugger\ar\relations\OneRelation;
 use jugger\ar\validator\PrimaryValidator;
 use jugger\model\field\BaseField;
 use jugger\model\field\IntField;
@@ -20,10 +21,16 @@ abstract class Migration
         $db = $class::getDb();
         $table = $class::getTableName();
         $fields = $class::getSchema();
+        $relations = $class::getRelations();
 
         $columns = [];
         foreach ($fields as $field) {
             $columns[] = self::getFieldSql($field, $db);
+        }
+        foreach ($relations  as $rel) {
+            if ($rel instanceof OneRelation) {
+                $columns[] = self::getForeignKeySql($table, $rel, $db);
+            }
         }
 
         $columns = join($columns, ",");
@@ -34,7 +41,7 @@ abstract class Migration
     public static function getFieldSql(BaseField $field, ConnectionInterface $db)
     {
         $size = 0;
-        $name = $field->getName();
+        $name = $db->quote($field->getName());
         $attributes = "";
         $validators = $field->getValidators();
         foreach ($validators as $v) {
@@ -59,7 +66,17 @@ abstract class Migration
         return "{$name} {$type} {$attributes}";
     }
 
-    public function getFieldType(BaseField $field, int $size = 0)
+    public static function getForeignKeySql(string $table, OneRelation $rel, ConnectionInterface $db)
+    {
+        $selfColumn = $db->quote($rel->getSelfColumn());
+        $targetTable = $db->quote($rel->getTargetTable());
+        $targetColumn = $db->quote($rel->getTargetColumn());
+        $keyName = $db->quote("fk_{$table}_{$rel->getSelfColumn()}_to_{$rel->getTargetTable()}_{$rel->getTargetColumn()}");
+
+        return "CONSTRAINT {$keyName} FOREIGN KEY ({$selfColumn}) REFERENCES {$targetTable}({$targetColumn})";
+    }
+
+    public static function getFieldType(BaseField $field, int $size = 0)
     {
         if ($field instanceof IntField) {
             return $size ? "INT({$size})" : "INT";
