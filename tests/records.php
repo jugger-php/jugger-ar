@@ -42,6 +42,7 @@ class Post extends ActiveRecord
             ]),
             new TextField([
                 'name' => 'content',
+                'value' => 'empty content',
             ]),
         ];
     }
@@ -105,9 +106,15 @@ class SectionElement extends ActiveRecord
             ]),
             new IntField([
                 'name' => 'id_element',
+                'validators' => [
+                    new RequireValidator()
+                ],
             ]),
             new IntField([
                 'name' => 'id_section',
+                'validators' => [
+                    new RequireValidator()
+                ],
             ]),
         ];
     }
